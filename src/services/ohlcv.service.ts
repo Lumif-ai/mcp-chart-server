@@ -1,7 +1,7 @@
-import { Agent, OHLCVData } from "../models/agent.model";
-import { fetchBinanceOHLCVData } from "../utils/binance.utils";
-import { fetchBitqueryOHLCVData } from "../utils/bitquery.utils";
-import { MongoDB } from "./mongodb.service";
+import { Agent, OHLCVData } from "../models/agent.model.js";
+import { fetchBinanceOHLCVData } from "../utils/binance.utils.js";
+import { fetchBitqueryOHLCVData } from "../utils/bitquery.utils.js";
+import { MongoDB } from "./mongodb.service.js";
 
 export async function getOHLCVData(
   agentName: string,
