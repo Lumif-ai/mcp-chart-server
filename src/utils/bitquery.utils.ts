@@ -4,7 +4,7 @@ import { Agent, OHLCVData } from "../models/agent.model";
 const BITQUERY_API_KEY = process.env.BITQUERY_API_KEY;
 const BITQUERY_URL = "https://streaming.bitquery.io/graphql";
 
-interface BitqueryResponse {
+interface BitquerySuccessResponse {
   data: {
     EVM: {
       DEXTradeByTokens: Array<{
@@ -22,6 +22,26 @@ interface BitqueryResponse {
     };
   };
 }
+
+interface BitqueryErrorResponse {
+  data: {
+    errors: Array<{
+      message: string;
+      locations?: Array<{
+        line: number;
+        column: number;
+      }>;
+      path?: string[];
+      extensions?: {
+        code?: string;
+        [key: string]: unknown;
+      };
+    }>;
+  };
+}
+
+// Combined type for all possible response types
+type BitqueryResponse = BitquerySuccessResponse | BitqueryErrorResponse;
 
 export async function fetchBitqueryOHLCVData(
   agent: Agent,
@@ -93,25 +113,32 @@ export async function fetchBitqueryOHLCVData(
       },
     );
 
-    const { data } = response.data;
+    // Check for errors in the response
+    if ("errors" in response.data.data) {
+      throw new Error(
+        `Bitquery error: ${(response.data.data as BitqueryErrorResponse["data"]).errors[0].message}`,
+      );
+    }
 
-    if (!data) {
+    const successData = response.data as BitquerySuccessResponse;
+
+    if (!successData.data) {
       throw new Error("No data received from Bitquery.");
     }
 
-    if (data.errors) {
-      throw new Error(`Bitquery error: ${data.errors[0].message}`);
-    }
-
-    if (response.data.data?.EVM?.DEXTradeByTokens) {
-      return response.data.data.EVM.DEXTradeByTokens.map((trade) => ({
-        time: Math.floor(new Date(trade.Block.Time).getTime() / 1000),
-        open: trade.Trade.open,
-        high: trade.max,
-        low: trade.min,
-        close: trade.Trade.close,
-        volume: parseFloat(trade.volume),
-      }));
+    if (successData.data.EVM?.DEXTradeByTokens) {
+      return successData.data.EVM.DEXTradeByTokens.map(
+        (
+          trade: BitquerySuccessResponse["data"]["EVM"]["DEXTradeByTokens"][0],
+        ) => ({
+          time: Math.floor(new Date(trade.Block.Time).getTime() / 1000),
+          open: trade.Trade.open,
+          high: trade.max,
+          low: trade.min,
+          close: trade.Trade.close,
+          volume: parseFloat(trade.volume),
+        }),
+      );
     }
 
     throw new Error("No trades found for the given token and quote currency.");
