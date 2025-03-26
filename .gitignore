@@ -15,3 +15,20 @@ node_modules
 
 #!.yarn/cache
 .pnp.*
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Build
+dist/
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
